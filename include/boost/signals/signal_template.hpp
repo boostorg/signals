@@ -1,5 +1,6 @@
 // Boost.Signals library
 
+// Copyright Timmo Stange 2007.
 // Copyright Douglas Gregor 2001-2004. Use, modification and
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -54,6 +55,23 @@
 #define BOOST_SIGNALS_ARGS_STRUCT_INST \
   BOOST_SIGNALS_NAMESPACE::detail::BOOST_SIGNALS_ARGS_STRUCT<BOOST_SIGNALS_TEMPLATE_ARGS>
 
+// Define generation-dependent part of the signature
+// The legacy support has slot grouping, while the new version supports
+// a threading model policy.
+#ifndef BOOST_SIGNALS_NO_LEGACY_SUPPORT
+#  define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT \
+    typename Group = int,\
+    typename GroupCompare = std::less<Group>
+#  define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS typename Group,\
+    typename GroupCompare
+#  define BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS Group, GroupCompare
+#else
+#  define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT \
+    typename ThreadingModel = BOOST_SIGNALS_NAMESPACE::single_threaded
+#  define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS typename ThreadingModel
+#  define BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS ThreadingModel
+#endif // ndef BOOST_SIGNALS_NO_LEGACY_SUPPORT
+ 
 namespace boost {
   namespace BOOST_SIGNALS_NAMESPACE {
     namespace detail {
@@ -130,8 +148,7 @@ namespace boost {
     BOOST_SIGNALS_TEMPLATE_PARMS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
     typename Combiner = last_value<R>,
-    typename Group = int,
-    typename GroupCompare = std::less<Group>,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT,
     typename SlotFunction = BOOST_SIGNALS_FUNCTION<
                               R BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
                               BOOST_SIGNALS_TEMPLATE_ARGS>
@@ -148,9 +165,10 @@ namespace boost {
     typedef typename BOOST_SIGNALS_NAMESPACE::detail::slot_result_type<R>::type
       slot_result_type;
 
-    // Argument types
+    // Argument types (for boost::bind, etc.)
     BOOST_SIGNALS_ARG_TYPES
 
+    // Argument types (for the standard library)
 #if BOOST_SIGNALS_NUM_ARGS == 1
     typedef T1 argument_type;
 #elif BOOST_SIGNALS_NUM_ARGS == 2
@@ -262,15 +280,16 @@ namespace boost {
     BOOST_SIGNALS_TEMPLATE_PARMS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
     typename Combiner,
-    typename Group,
-    typename GroupCompare,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
     typename SlotFunction
   >
   BOOST_SIGNALS_NAMESPACE::connection
   BOOST_SIGNALS_SIGNAL<
     R, BOOST_SIGNALS_TEMPLATE_ARGS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    Combiner, Group, GroupCompare, SlotFunction
+    Combiner,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+    SlotFunction
   >::connect(const slot_type& in_slot,
              BOOST_SIGNALS_NAMESPACE::connect_position at)
   {
@@ -291,15 +310,16 @@ namespace boost {
     BOOST_SIGNALS_TEMPLATE_PARMS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
     typename Combiner,
-    typename Group,
-    typename GroupCompare,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
     typename SlotFunction
   >
   BOOST_SIGNALS_NAMESPACE::connection
   BOOST_SIGNALS_SIGNAL<
     R, BOOST_SIGNALS_TEMPLATE_ARGS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    Combiner, Group, GroupCompare, SlotFunction
+    Combiner,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+    SlotFunction
   >::connect(const group_type& group,
              const slot_type& in_slot,
              BOOST_SIGNALS_NAMESPACE::connect_position at)
@@ -319,18 +339,21 @@ namespace boost {
     BOOST_SIGNALS_TEMPLATE_PARMS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
     typename Combiner,
-    typename Group,
-    typename GroupCompare,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
     typename SlotFunction
   >
   typename BOOST_SIGNALS_SIGNAL<
              R, BOOST_SIGNALS_TEMPLATE_ARGS
              BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-             Combiner, Group, GroupCompare, SlotFunction>::result_type
+             Combiner, 
+             BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+             SlotFunction>::result_type
   BOOST_SIGNALS_SIGNAL<
     R, BOOST_SIGNALS_TEMPLATE_ARGS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    Combiner, Group, GroupCompare, SlotFunction
+    Combiner, 
+    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+    SlotFunction
   >::operator()(BOOST_SIGNALS_PARMS)
   {
     // Notify the slot handling code that we are making a call
@@ -359,18 +382,21 @@ namespace boost {
     BOOST_SIGNALS_TEMPLATE_PARMS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
     typename Combiner,
-    typename Group,
-    typename GroupCompare,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
     typename SlotFunction
   >
   typename BOOST_SIGNALS_SIGNAL<
              R, BOOST_SIGNALS_TEMPLATE_ARGS
              BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-             Combiner, Group, GroupCompare, SlotFunction>::result_type
+             Combiner, 
+             BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+             SlotFunction>::result_type
   BOOST_SIGNALS_SIGNAL<
     R, BOOST_SIGNALS_TEMPLATE_ARGS
     BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    Combiner, Group, GroupCompare, SlotFunction
+    Combiner, 
+    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+    SlotFunction
   >::operator()(BOOST_SIGNALS_PARMS) const
   {
     // Notify the slot handling code that we are making a call
@@ -404,6 +430,9 @@ namespace boost {
 #undef BOOST_SIGNALS_FUNCTION
 #undef BOOST_SIGNALS_SIGNAL
 #undef BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
+#undef BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT
+#undef BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS
+#undef BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_SUFFIX

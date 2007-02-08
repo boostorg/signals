@@ -1,5 +1,6 @@
 // Boost.Signals library
 
+// Copyright Timmo Stange 2007.
 // Copyright Douglas Gregor 2001-2004. Use, modification and
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -11,6 +12,7 @@
 #define BOOST_SIGNALS_CONNECTION_HPP
 
 #include <boost/signals/detail/signals_common.hpp>
+#include <boost/signals/detail/slot_connection_interface.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/operators.hpp>
 #include <boost/any.hpp>
@@ -57,8 +59,10 @@ namespace boost {
 
         std::list<bound_object> bound_objects;
       };
+
     } // end namespace detail
 
+    // connection class.
     // The user may freely pass around the "connection" object and terminate
     // the connection at any time using disconnect().
     class BOOST_SIGNALS_DECL connection :
@@ -66,79 +70,89 @@ namespace boost {
       private equality_comparable1<connection>
     {
     public:
-      connection() : con(), controlling_connection(false) {}
-      connection(const connection&);
-      ~connection();
+      // Default construction creates a connection that's not associated with
+      // a slot.
+      connection() : slot_() {
+        identity_ = this;
+      }
+      // Copy construction.
+      connection(const connection& other) 
+        : slot_(other.slot_), identity_(other.identity_)
+      { }
+      // Destruction.
+      ~connection()
+      { }
 
       // Block he connection: if the connection is still active, there
-      // will be no notification
-      void block(bool should_block = true) { con->blocked_ = should_block; }
-      void unblock() { con->blocked_ = false; }
-      bool blocked() const { return !connected() || con->blocked_; }
+      // will be no notification.
+      void block(bool should_block = true);
+      // Lift the block.
+      void unblock();
+      // Check blocking state.
+      bool blocked() const;
 
-      // Disconnect the signal and slot, if they are connected
+      // Disconnect the signal and slot, if they are connected.
       void disconnect() const;
 
-      // Returns true if the signal and slot are connected
-      bool connected() const { return con.get() && con->signal_disconnect; }
+      // Returns true if the signal and slot are connected.
+      bool connected() const;
 
-      // Comparison of connections
-      bool operator==(const connection& other) const;
-      bool operator<(const connection& other) const;
+      // Comparison of connections.
+      bool operator==(const connection& other) const {
+        return identity_ == other.identity_;
+      }
+      bool operator<(const connection& other) const {
+        return identity_ < other.identity_;
+      }
 
-      // Connection assignment
-      connection& operator=(const connection& other) ;
+      // Connection assignment.
+      connection& operator=(const connection& other) {
+        slot_ = other.slot_;
+        identity_ = other.identity_;
+        return *this;
+      }
 
-      // Swap connections
-      void swap(connection& other);
-
-    public: // TBD: CHANGE THIS
-      // Set whether this connection object is controlling or not
-      void set_controlling(bool control = true)
-      { controlling_connection = control; }
-
-      shared_ptr<BOOST_SIGNALS_NAMESPACE::detail::basic_connection>
-      get_connection() const
-      { return con; }
+      // Swap connections.
+      void swap(connection& other) {
+        this->slot_.swap(other.slot_);
+        std::swap(this->identity_, other.identity_);
+      }
 
     private:
-      friend class detail::signal_base_impl;
-      friend class detail::slot_base;
-      friend class trackable;
-
-      // Reset this connection to refer to a different actual connection
-      void reset(BOOST_SIGNALS_NAMESPACE::detail::basic_connection*);
-
-      // Add a bound object to this connection (not for users)
-      void add_bound_object(const BOOST_SIGNALS_NAMESPACE::detail::bound_object& b);
-
-      friend class BOOST_SIGNALS_NAMESPACE::detail::bound_objects_visitor;
-
-      // Pointer to the actual contents of the connection
-      shared_ptr<BOOST_SIGNALS_NAMESPACE::detail::basic_connection> con;
-
-      // True if the destruction of this connection object should disconnect
-      bool controlling_connection;
+      // Pointer to the slot-connection interface.
+      weak_ptr<BOOST_SIGNALS_NAMESPACE::detail::slot_connection_interface> 
+        slot_;
+      // Raw pointer to the original connection for comparisons.
+      void* identity_;
     };
 
+    // scoped_connection class.
     // Similar to connection, but will disconnect the connection when it is
     // destroyed unless release() has been called.
     class BOOST_SIGNALS_DECL scoped_connection : public connection {
     public:
-      scoped_connection() : connection(), released(false) {}
+      // Default construction.
+      scoped_connection() 
+        : connection(), released_(false) 
+      { }
+      // Construction from base.
       scoped_connection(const connection&);
+      // Copy construction.
       scoped_connection(const scoped_connection&);
+      // Destruction.
       ~scoped_connection();
 
+      // Relieve the connection from control over the slot.
       connection release();
 
       inline void swap(scoped_connection&);
 
+      // Assignment operations.
       scoped_connection& operator=(const connection&);
       scoped_connection& operator=(const scoped_connection&);
 
     private:
-      bool released;
+      bool released_;
     };
 
     namespace detail {
