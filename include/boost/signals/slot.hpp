@@ -1,5 +1,6 @@
 // Boost.Signals library
 
+// Copyright Timmo Stange 2007.
 // Copyright Douglas Gregor 2001-2004. Use, modification and
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -11,11 +12,15 @@
 #define BOOST_SIGNALS_SLOT_HEADER
 
 #include <boost/signals/detail/signals_common.hpp>
-#include <boost/signals/connection.hpp>
-#include <boost/signals/trackable.hpp>
-#include <boost/visit_each.hpp>
-#include <boost/shared_ptr.hpp>
-#include <cassert>
+#include <boost/signals/detail/threading_model.hpp>
+#include <boost/signals/detail/slot_signal_interface.hpp>
+#ifdef BOOST_SIGNALS_NO_LEGACY_SUPPORT
+#  define BOOST_SIGNALS_DEFAULT_MODEL boost::BOOST_SIGNALS_NAMESPACE::single_threaded
+#else
+#include <boost/signals/detail/legacy/legacy_implementation.hpp>
+#  define BOOST_SIGNALS_DEFAULT_MODEL boost::BOOST_SIGNALS_NAMESPACE::detail::legacy_implementation
+#endif // def BOOST_SIGNALS_NO_LEGACY_SUPPORT
+#include <boost/signals/detail/signal_impl_base.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX
@@ -23,38 +28,6 @@
 
 namespace boost {
   namespace BOOST_SIGNALS_NAMESPACE {
-    namespace detail {
-      class BOOST_SIGNALS_DECL slot_base {
-        // We would have to enumerate all of the signalN classes here as
-        // friends to make this private (as it otherwise should be). We can't
-        // name all of them because we don't know how many there are.
-      public:
-        struct data_t {
-          std::vector<const trackable*> bound_objects;
-          connection watch_bound_objects;
-        };
-        shared_ptr<data_t> get_data() const { return data; }
-
-        // Get the set of bound objects
-        std::vector<const trackable*>& get_bound_objects() const
-        { return data->bound_objects; }
-
-        // Determine if this slot is still "active", i.e., all of the bound
-        // objects still exist
-        bool is_active() const 
-        { return data->watch_bound_objects.connected(); }
-
-      protected:
-        // Create a connection for this slot
-        void create_connection();
-
-        shared_ptr<data_t> data;
-
-      private:
-        static void bound_object_destructed(void*, void*) {}
-      };
-    } // end namespace detail
-
     // Get the slot so that it can be copied
     template<typename F>
     reference_wrapper<const F>
@@ -98,38 +71,34 @@ namespace boost {
       the_tag_type tag = the_tag_type();
       return tag;
     }
-
   } // end namespace BOOST_SIGNALS_NAMESPACE
 
-  template<typename SlotFunction>
-  class slot : public BOOST_SIGNALS_NAMESPACE::detail::slot_base {
-    typedef BOOST_SIGNALS_NAMESPACE::detail::slot_base inherited;
-    typedef typename inherited::data_t data_t;
+  // slot class template.
+  template<typename SlotFunction, class ThreadingModel = BOOST_SIGNALS_DEFAULT_MODEL>
+  class slot 
+    : private BOOST_SIGNALS_NAMESPACE::detail::slot_signal_interface<
+                BOOST_SIGNALS_NAMESPACE::detail::signal_impl_base<ThreadingModel> 
+              > 
+  {
+    typedef BOOST_SIGNALS_NAMESPACE::detail::slot_signal_interface<
+              BOOST_SIGNALS_NAMESPACE::detail::signal_impl_base<ThreadingModel> 
+            > base_type;
 
   public:
     template<typename F>
-    slot(const F& f) : slot_function(BOOST_SIGNALS_NAMESPACE::get_invocable_slot(f, BOOST_SIGNALS_NAMESPACE::tag_type(f)))
+    slot(const F& f) 
+      : slot_function(
+        BOOST_SIGNALS_NAMESPACE::get_invocable_slot(f, BOOST_SIGNALS_NAMESPACE::tag_type(f))
+        )
     {
-      this->data.reset(new data_t);
-
-      // Visit each of the bound objects and store them for later use
-      // An exception thrown here will allow the basic_connection to be
-      // destroyed when this goes out of scope, and no other connections
-      // have been made.
-      BOOST_SIGNALS_NAMESPACE::detail::bound_objects_visitor 
-        do_bind(this->data->bound_objects);
-      visit_each(do_bind, 
-                 BOOST_SIGNALS_NAMESPACE::get_inspectable_slot
-                   (f, BOOST_SIGNALS_NAMESPACE::tag_type(f)));
-      create_connection();
+      start_tracking(BOOST_SIGNALS_NAMESPACE::get_inspectable_slot(f, 
+        BOOST_SIGNALS_NAMESPACE::tag_type(f)));
     }
 
 #ifdef __BORLANDC__
     template<typename F>
     slot(F* f) : slot_function(f)
     {
-      this->data.reset(new data_t);
-      create_connection();
     }
 #endif // __BORLANDC__
 
@@ -140,7 +109,7 @@ namespace boost {
     // Get the slot function to call the actual slot
     const SlotFunction& get_slot_function() const { return slot_function; }
 
-    void release() const { data->watch_bound_objects.set_controlling(false); }
+    void release() const { stop_tracking(); }
 
   private:
     slot(); // no default constructor

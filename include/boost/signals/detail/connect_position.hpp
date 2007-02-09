@@ -8,14 +8,13 @@
 
 // For more information, see http://www.boost.org
 
-#define BOOST_SIGNALS_SOURCE
+#ifndef BOOST_SIGNALS_DETAIL_CONNECT_POSITION_HPP
+#define BOOST_SIGNALS_DETAIL_CONNECT_POSITION_HPP
 
-#include <boost/signals/detail/signal_base.hpp>
+namespace boost { namespace BOOST_SIGNALS_NAMESPACE {
 
-namespace boost {
-  namespace BOOST_SIGNALS_NAMESPACE {
-    namespace detail {
-    } // namespace detail
-  } // namespace BOOST_SIGNALS_NAMESPACE
-} // namespace boost
+  enum connect_position { at_back, at_front };
 
+} }
+
+#endif // BOOST_SIGNALS_DETAIL_CONNECT_POSITION_HPP

@@ -1,6 +1,7 @@
 // Boost.Signals library
 
-// Copyright Timmo Stange 2007. Use, modification and
+// Copyright Timmo Stange 2007.
+// Copyright Douglas Gregor 2001-2004. Use, modification and
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
@@ -10,7 +11,7 @@
 #ifndef BOOST_SIGNALS_DETAIL_SLOT_CONNECTION_INTERFACE_HPP
 #define BOOST_SIGNALS_DETAIL_SLOT_CONNECTION_INTERFACE_HPP
 
-#include <boost/noncopyable.h>
+#include <boost/noncopyable.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX

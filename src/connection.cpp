@@ -15,26 +15,19 @@
 
 namespace boost {
   namespace BOOST_SIGNALS_NAMESPACE {
-    // Copy-assignment.
-    connection& connection::operator=(const connection& other)
-    {
-      connection(other).swap(*this);
-      return *this;
-    }
-
     // Set the slot's blocking state through this connection.
     void connection::block(bool should_block)
     {
-      shared_ptr<slot_connection_interface> sp(slot_.lock());
+      shared_ptr<detail::slot_connection_interface> sp(slot_.lock());
       if(sp) {
-        sp->set_slot_state(0, should_block);
+        sp->set_slot_state(0, &should_block);
       }
     }
 
     // Reset the slot's blocking state.
     void connection::unblock()
     {
-      shared_ptr<slot_connection_interface> sp(slot_.lock());
+      shared_ptr<detail::slot_connection_interface> sp(slot_.lock());
       if(sp) {
         bool block = false;
         sp->set_slot_state(0, &block);
@@ -44,7 +37,7 @@ namespace boost {
     // Retrieve the slot's blocking state.
     bool connection::blocked() const
     {
-      shared_ptr<slot_connection_interface> sp(slot_.lock());
+      shared_ptr<detail::slot_connection_interface> sp(slot_.lock());
       if(sp) {
         bool block;
         sp->get_slot_state(0, &block);
@@ -57,7 +50,7 @@ namespace boost {
     // Retrieve the slot connection state.
     bool connection::connected() const
     {
-      shared_ptr<slot_connection_interface> sp(slot_.lock());
+      shared_ptr<detail::slot_connection_interface> sp(slot_.lock());
       if(sp) {
         bool connected;
         sp->get_slot_state(&connected, 0);
@@ -70,7 +63,7 @@ namespace boost {
     // Disconnect the slot from the signal.
     void connection::disconnect() const
     {
-      shared_ptr<slot_connection_interface> sp(slot_.lock());
+      shared_ptr<detail::slot_connection_interface> sp(slot_.lock());
       if(sp) {
         bool connected = false;
         sp->set_slot_state(&connected, 0);
@@ -91,7 +84,7 @@ namespace boost {
 
     scoped_connection::scoped_connection(const scoped_connection& other) :
       connection(other),
-      released(other.released_)
+      released_(other.released_)
     {
     }
 

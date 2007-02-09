@@ -1,5 +1,6 @@
 // Boost.Signals library
 
+// Copyright Timmo Stange 2007.
 // Copyright Douglas Gregor 2001-2004. Use, modification and
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -44,13 +45,12 @@ namespace boost {
         typedef unusable type;
       };
 
-      // Determine if the given type T is a signal
-      class signal_base;
+      struct signal_base_tag;
 
       template<typename T>
       struct is_signal {
         BOOST_STATIC_CONSTANT(bool,
-          value = (is_convertible<T*, signal_base*>::value));
+          value = (is_convertible<T*, signal_base_tag*>::value));
       };
 
       /*
@@ -146,11 +146,6 @@ namespace boost {
                             reference_tag,
                             signal_or_value>::type type;
       };
-
-      // Forward declaration needed in lots of places
-      class signal_base_impl;
-      class bound_objects_visitor;
-      class slot_base;
     } // end namespace detail
   } // end namespace BOOST_SIGNALS_NAMESPACE
 } // end namespace boost

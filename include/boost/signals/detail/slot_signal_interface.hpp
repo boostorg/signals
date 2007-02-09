@@ -1,6 +1,7 @@
 // Boost.Signals library
 
-// Copyright Timmo Stange 2007. Use, modification and
+// Copyright Timmo Stange 2007.
+// Copyright Douglas Gregor 2001-2004. Use, modification and
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
@@ -23,12 +24,13 @@ namespace boost {
       // slot_signal_interface class template.
       // Provides slot state manipulation and observation for parts of the
       // library that are aware of the signal implementation in use.
-      template<class SignalImpl, class BoundObjectsTracker>
+      template<class SignalImpl>
       class slot_signal_interface 
-        : public slot_connection_interface, public BoundObjectsTracker
+        : public SignalImpl::slot_tracker_base_type
       {
         typedef typename SignalImpl::slot_iterator iterator;
         typedef typename SignalImpl::signal_lock signal_lock;
+        typedef typename SignalImpl::slot_tracker_base_type base_type;
       public:
         // Acquire the slot from a locked signal context (protect it from being 
         // removed). This and release() below is used to ensure a valid iterator
@@ -55,15 +57,16 @@ namespace boost {
           }
         }
 
+        // Check the connection state from a locked signal context.
+        bool disconnected() const {
+          return disconnected_;
+        }
+
       protected:
-        slot_signal_interface(const shared_ptr& sig, const iterator pos)
-          : slot_connection_interface(&set_slot_state, &get_slot_state),
-#ifndef BOOST_SIGNALS_NO_LEGACY_SUPPORT
-          // The legacy tracker needs access to disconnect slots.
-          BoundObjectsTracker(this),
-#endif
-          signal_(sig), iter_(pos), block_(0), ref_count_(1), 
-          disconnected_(false)
+        slot_signal_interface()
+          : base_type(&set_slot_state, &get_slot_state),
+          signal_(), iter_(), block_(0), ref_count_(0), 
+          disconnected_(true)
         { }
 
         ~slot_signal_interface() {
@@ -72,16 +75,27 @@ namespace boost {
           assert(ref_count_ == 0);
           assert(!signal_);
         }
+
+        // Initialize the slot-signal connection.
+        void reset(const shared_ptr<SignalImpl>& sig, const iterator pos)
+        {
+          signal_.reset(sig);
+          iter_ = pos;
+          disconnected_ = !sig;
+          ref_count_ = disconnected_ ? 0 : 1;
+        }
+
       private:
         // Change the slot's state.
         void set_state(bool* connected, bool* blocked) 
         {
-          if(signal_) {
-            signal_lock lock(signal_);
+          signal_lock lock(signal_);
+          if(lock) {
             // Adjust the blocking state, if requested.
             if(blocked) {
               block_ = *blocked ? 1 : 0;
             }
+            // Disconnect the slot, if requested.
             if(connected) {
               if(!*connected) {
                 if(!disconnected_) {
@@ -97,16 +111,25 @@ namespace boost {
         void get_state(bool* connected, bool* blocked) const
         {
           if(signal_) {
-            signal_lock lock(signal_);
-            // Adjust the blocking state, if requested.
-            if(blocked) {
-              *blocked = (block_ != 0);
-            }
             if(connected) {
-              if(!disconnected_)
-                *connected = check_tracked_objects();
-              else
+              // The caller wants the connection state.
+              if(!disconnected_) {
+                // We only need a lock to check the tracked objects - for
+                // all other purposes the reliability of the returned
+                // "snapshot" depends on external synchronization.
+                signal_lock lock(signal_);
+                if(lock) {
+                  *connected = check_tracked_objects();
+                } else {
+                  *connected = false;
+                }
+              } else {
                 *connected = false;
+              }
+            }
+            if(blocked) {
+              // The caller wants the blocking state.
+              *blocked = (block_ != 0);
             }
           } else {
             // The caller holds a shared_ptr to a dead slot.

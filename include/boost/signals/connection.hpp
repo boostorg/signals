@@ -154,69 +154,6 @@ namespace boost {
     private:
       bool released_;
     };
-
-    namespace detail {
-      struct connection_slot_pair {
-        connection first;
-        any second;
-
-        connection_slot_pair() {}
-
-        connection_slot_pair(const connection& c, const any& a)
-          : first(c), second(a)
-        {
-        }
-
-        // Dummys to allow explicit instantiation to work
-        bool operator==(const connection_slot_pair&) const { return false; }
-        bool operator<(const connection_slot_pair&) const { return false;}
-      };
-
-      // Determines if the underlying connection is disconnected
-      struct is_disconnected {
-        typedef connection_slot_pair argument_type;
-        typedef bool result_type;
-
-        inline bool operator()(const argument_type& c) const
-        {
-          return !c.first.connected();
-        }
-      };
-
-      // Determines if the underlying connection is callable, ie if
-      // it is connected and not blocked
-      struct is_callable {
-        typedef connection_slot_pair argument_type;
-        typedef bool result_type;
-
-        inline bool operator()(const argument_type& c) const
-        {
-          return c.first.connected() && !c.first.blocked() ;
-        }
-      };
-
-      // Autodisconnects the bound object when it is destroyed unless the
-      // release method is invoked.
-      class auto_disconnect_bound_object {
-      public:
-        auto_disconnect_bound_object(const bound_object& b) :
-          binding(b), auto_disconnect(true)
-        {
-        }
-
-        ~auto_disconnect_bound_object()
-        {
-          if (auto_disconnect)
-            binding.disconnect(binding.obj, binding.data);
-        }
-
-        void release() { auto_disconnect = false; }
-
-      private:
-        bound_object binding;
-        bool auto_disconnect;
-      };
-    } // end namespace detail
   } // end namespace BOOST_SIGNALS_NAMESPACE
 } // end namespace boost
 

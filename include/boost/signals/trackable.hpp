@@ -1,5 +1,6 @@
 // Boost.Signals library
 
+// Copyright Timmo Stange 2007.
 // Copyright Douglas Gregor 2001-2004. Use, modification and
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
@@ -10,10 +11,14 @@
 #ifndef BOOST_SIGNALS_TRACKABLE_HPP
 #define BOOST_SIGNALS_TRACKABLE_HPP
 
+#include <boost/signals/detail/config.hpp>
+#include <boost/signals/detail/slot_connection_interface.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <boost/type_traits.hpp>
-#include <boost/signals/connection.hpp>
 #include <boost/ref.hpp>
 #include <boost/utility/addressof.hpp>
+#include <boost/mpl/bool.hpp>
 #include <list>
 #include <vector>
 
@@ -24,42 +29,45 @@
 namespace boost {
 
 namespace BOOST_SIGNALS_NAMESPACE {
+  namespace detail {
+    class legacy_slot_tracking_base;
+  }
   // Base class for "trackable" objects that can be tracked when they are
   // bound in slot target functions. When a trackable object is destroyed,
   // the signal/slot connections are disconnected automatically.
   class BOOST_SIGNALS_DECL trackable {
-  private:
-    static void signal_disconnected(void* obj, void* data);
-
-    friend class detail::signal_base_impl;
-    friend class detail::slot_base;
-    void signal_connected(connection, BOOST_SIGNALS_NAMESPACE::detail::bound_object&) const;
-
   protected:
-    trackable() : connected_signals(), dying(false) {}
-    trackable(const trackable&) : connected_signals(), dying(false) {}
+    trackable() 
+      : connected_slots_(), dying_(false) 
+    { }
+    trackable(const trackable&) 
+      : connected_slots_(), dying_(false) 
+    { }
     ~trackable();
 
     trackable& operator=(const trackable&)
     {
-      connected_signals.clear();
+      connected_slots_.clear();
       return *this;
     }
 
   private:
-    typedef std::list<connection> connection_list;
-    typedef connection_list::iterator connection_iterator;
+    friend class detail::legacy_slot_tracking_base;
+
+    void add_slot(const shared_ptr<detail::slot_connection_interface>&) const;
+    void remove_slot(const detail::slot_connection_interface*) const;
+
+    typedef std::list<weak_ptr<detail::slot_connection_interface> > slot_list;
+    typedef slot_list::iterator slot_iterator;
 
     // List of connections that this object is part of
-    mutable connection_list connected_signals;
+    mutable slot_list connected_slots_;
 
     // True when the object is being destroyed
-    mutable bool dying;
+    mutable bool dying_;
   };
 
   namespace detail {
-    template<bool Cond> struct truth {};
-
     // A visitor that adds each trackable object to a vector
     class bound_objects_visitor {
     public:
@@ -85,19 +93,19 @@ namespace BOOST_SIGNALS_NAMESPACE {
       template<typename T>
       void decode(const T& t, long) const
       {
-        typedef truth<(is_pointer<T>::value)> is_a_pointer;
+        typedef mpl::bool_<(is_pointer<T>::value)> is_a_pointer;
         maybe_get_pointer(t, is_a_pointer());
       }
 
       // maybe_get_pointer() decides between a pointer and a non-pointer
       template<typename T>
-      void maybe_get_pointer(const T& t, truth<true>) const
+      void maybe_get_pointer(const T& t, mpl::bool_<true>) const
       {
         add_if_trackable(t);
       }
 
       template<typename T>
-      void maybe_get_pointer(const T& t, truth<false>) const
+      void maybe_get_pointer(const T& t, mpl::bool_<false>) const
       {
         // Take the address of this object, because the object itself may be
         // trackable
