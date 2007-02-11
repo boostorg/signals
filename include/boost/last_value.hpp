@@ -18,7 +18,7 @@
 namespace boost {
   // no_slots_error is thrown when we are unable to generate a return value
   // due to no slots being connected to the signal. 
-  class no_slots_error: std::runtime_error
+  class no_slots_error: public std::runtime_error
   {
   public:
     no_slots_error(const std::string &description): std::runtime_error(description)
