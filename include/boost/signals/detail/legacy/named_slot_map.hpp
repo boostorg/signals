@@ -26,6 +26,8 @@
 namespace boost { namespace BOOST_SIGNALS_NAMESPACE {
   namespace detail {
 
+    typedef slot_connection_interface named_slot_type;
+
     class stored_group
     {
     public:
@@ -79,10 +81,10 @@ namespace boost { namespace BOOST_SIGNALS_NAMESPACE {
 
     class BOOST_SIGNALS_DECL named_slot_map_iterator :
       public iterator_facade<named_slot_map_iterator,
-      shared_ptr<slot_connection_interface>,
+      shared_ptr<named_slot_type>,
       forward_traversal_tag>
     {
-      typedef std::list<shared_ptr<slot_connection_interface> > group_list;
+      typedef std::list<shared_ptr<named_slot_type> > group_list;
       typedef group_list::iterator slot_pair_iterator;
       typedef std::map<stored_group, group_list, compare_type> slot_container_type;
       typedef slot_container_type::iterator group_iterator;
@@ -108,7 +110,7 @@ namespace boost { namespace BOOST_SIGNALS_NAMESPACE {
         if (slot_assigned) slot_ = other.slot_;
         return *this;
       }
-      shared_ptr<slot_connection_interface>& dereference() const 
+      shared_ptr<named_slot_type>& dereference() const 
       {
         return *slot_;
       }
@@ -168,14 +170,14 @@ namespace boost { namespace BOOST_SIGNALS_NAMESPACE {
       iterator begin();
       iterator end();
       iterator insert(const stored_group& name, 
-        const shared_ptr<slot_connection_interface>& slot,
+        const shared_ptr<named_slot_type>& slot,
         connect_position at);
       void disconnect(const stored_group& name);
       void erase(iterator pos);
       std::size_t count() const;
 
     private:
-      typedef std::list<shared_ptr<slot_connection_interface> > group_list;
+      typedef std::list<shared_ptr<named_slot_type> > group_list;
       typedef std::map<stored_group, group_list, compare_type> slot_container_type;
       typedef slot_container_type::iterator group_iterator;
       typedef slot_container_type::const_iterator const_group_iterator;

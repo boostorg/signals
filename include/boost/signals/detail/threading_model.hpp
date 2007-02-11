@@ -28,10 +28,6 @@ namespace boost {
       // model.
       struct signal_lock
       {
-        signal_lock(const shared_ptr<single_threaded>& sp)
-          : exists_(true)
-        { }
-
         signal_lock(const weak_ptr<single_threaded>& wp)
           : exists_(!wp.expired())
         { }
@@ -47,10 +43,6 @@ namespace boost {
       // A lock securing exclusive access to and lifetime of a signal.
       struct signal_call_lock
       {
-        signal_call_lock(const shared_ptr<single_threaded>& sp)
-          : ptr_(sp)
-        { }
-
         signal_call_lock(const weak_ptr<single_threaded>& wp)
           : ptr_(wp.lock())
         { }
@@ -84,12 +76,6 @@ namespace boost {
       // A lock securing exclusive access to and lifetime of a signal.
       struct signal_lock
       {
-        signal_lock(const shared_ptr<multi_threaded>& sp)
-          : ptr_(sp)
-        {
-          if(ptr_) ptr_->lock_mutex();
-        }
-
         signal_lock(const weak_ptr<multi_threaded>& wp)
           : ptr_(wp.lock())
         {

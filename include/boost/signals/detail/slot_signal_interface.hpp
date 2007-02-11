@@ -35,13 +35,13 @@ namespace boost {
         // Acquire the slot from a locked signal context (protect it from being 
         // removed). This and release() below is used to ensure a valid iterator
         // during signal invocation.
-        void acquire() const
+        void acquire()
         {
           if(ref_count_ != 0)
             ++ref_count_;
         }
         // Release the slot from a locked signal context (remove if count drops to zero).
-        void release() const
+        void release()
         {
           if(ref_count_ != 0) {
             if(--ref_count_ == 0) {
@@ -61,6 +61,19 @@ namespace boost {
         bool disconnected() const {
           return disconnected_;
         }
+        // Check the blocking state from a locked signal context.
+        bool blocked() const {
+          return block_ != 0;
+        }
+
+        // Initialize the slot-signal connection.
+        void reset(const shared_ptr<SignalImpl>& sig, const iterator pos)
+        {
+          signal_ = sig;
+          iter_ = pos;
+          disconnected_ = !sig;
+          ref_count_ = disconnected_ ? 0 : 1;
+        }
 
       protected:
         slot_signal_interface()
@@ -74,15 +87,6 @@ namespace boost {
           // rotten in the state of Denmark.
           assert(ref_count_ == 0);
           assert(!signal_);
-        }
-
-        // Initialize the slot-signal connection.
-        void reset(const shared_ptr<SignalImpl>& sig, const iterator pos)
-        {
-          signal_.reset(sig);
-          iter_ = pos;
-          disconnected_ = !sig;
-          ref_count_ = disconnected_ ? 0 : 1;
         }
 
       private:

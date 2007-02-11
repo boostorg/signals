@@ -12,6 +12,7 @@
 #define BOOST_SIGNALS_DETAIL_SLOT_CONNECTION_INTERFACE_HPP
 
 #include <boost/noncopyable.hpp>
+#include <boost/signals/detail/signals_common.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX
@@ -23,7 +24,7 @@ namespace boost {
       // slot_connection_interface class.
       // Provides the interface for connections and bound objects to observe and
       // manipulate the slot they're associate with. Base class for all slot types.
-      class slot_connection_interface : noncopyable
+      class slot_connection_interface : public noncopyable
       {
       public:
         // Manipulating the slot state.

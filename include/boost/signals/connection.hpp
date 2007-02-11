@@ -72,9 +72,14 @@ namespace boost {
     public:
       // Default construction creates a connection that's not associated with
       // a slot.
-      connection() : slot_() {
-        identity_ = this;
-      }
+      connection() : slot_(), identity_(new char()) 
+      { }
+      // Construction from a shared_ptr to a slot.
+      explicit connection(const shared_ptr<
+        BOOST_SIGNALS_NAMESPACE::detail::slot_connection_interface
+      >& slot) 
+        : slot_(slot), identity_(new char()) 
+      { }
       // Copy construction.
       connection(const connection& other) 
         : slot_(other.slot_), identity_(other.identity_)
@@ -123,7 +128,7 @@ namespace boost {
       weak_ptr<BOOST_SIGNALS_NAMESPACE::detail::slot_connection_interface> 
         slot_;
       // Raw pointer to the original connection for comparisons.
-      void* identity_;
+      shared_ptr<char> identity_;
     };
 
     // scoped_connection class.

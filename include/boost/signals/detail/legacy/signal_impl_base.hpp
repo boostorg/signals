@@ -25,7 +25,9 @@ namespace boost {
     namespace detail {
       // signal_impl_base explicit specialization.
       template<>
-      class signal_impl_base<legacy_implementation> : public legacy_implementation
+      class signal_impl_base<legacy_implementation> 
+        : public legacy_implementation,
+        public enable_shared_from_this<signal_impl_base<legacy_implementation> >
       {
       public:
         typedef named_slot_map::iterator slot_iterator;
@@ -48,16 +50,39 @@ namespace boost {
           }
         }
 
-       typedef compare_type compare_type;
+        typedef compare_type compare_type;
 
-     protected:
+        // Connect an unnamed slot.
+        template<class Slot>
+        connection connect_slot(const shared_ptr<Slot>& slot,
+          connect_position at) {
+            slot_iterator pos = slots_.insert(stored_group(), slot, at);
+            slot->reset(shared_from_this(), pos);
+            return connection(slot);
+        }
+
+        // Connect a named slot.
+        template<class Slot>
+        connection connect_slot(const stored_group& group, 
+          const shared_ptr<Slot>& slot,
+          connect_position at) 
+        {
+          slot_iterator pos = slots_.insert(group, slot, at);
+          slot->reset(shared_from_this(), pos);
+          return connection(slot);
+        }
+      /*private:*/
+        void remove_slot(const slot_iterator& pos) {
+          slots_.erase(pos);
+        }
+      protected:
         signal_impl_base(const compare_type& comp)
           : slots_(comp)
         { }
         ~signal_impl_base()
         { }
 
-      private:
+      public: // An arbitrary variety of signal instantiations may access this.
         mutable named_slot_map slots_;
       };
     } // end namespace detail

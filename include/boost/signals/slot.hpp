@@ -27,7 +27,53 @@
 #endif
 
 namespace boost {
+  template<typename F, class TM>
+  class slot;
+
   namespace BOOST_SIGNALS_NAMESPACE {
+    namespace detail {
+      // slot_connection class template.
+      // This represents an actual callable slot stored in a signal and refered
+      // to by client connections.
+      template<typename SlotFunction, class ThreadingModel>
+      class slot_connection 
+        : public slot_signal_interface<signal_impl_base<ThreadingModel> > 
+      {
+        typedef slot_signal_interface<signal_impl_base<ThreadingModel> > base_type;
+      public:
+        slot_connection(const SlotFunction& f, 
+          const typename base_type::bound_objects_container& bo)
+          : slot_function_(f)
+        {
+          // TODO: Could optimize the vector size with a reserve() here.
+          bound_objects_ = bo;
+          start_tracking();
+        }
+
+        // Get the slot function to call the actual slot
+        const SlotFunction& get_slot_function() const { return slot_function_; }
+
+      private:
+        SlotFunction slot_function_;
+      };
+
+      // slot_friend structure.
+      // Provides a loophole for signals to access a slot's private members.
+      // (We can't make all the possible signal instantiations friends).
+      struct slot_friend
+      {
+        template<typename F, class TM>
+        static shared_ptr<slot_connection<F, TM> > 
+          create_slot(const slot<F,TM>& slot) {
+            return slot.create_slot_connection();
+        }
+      
+        template<typename F, class TM>
+        static bool is_active(const slot<F,TM>& slot) {
+            return slot.is_active();
+        }
+      };
+    }
     // Get the slot so that it can be copied
     template<typename F>
     reference_wrapper<const F>
@@ -74,25 +120,30 @@ namespace boost {
   } // end namespace BOOST_SIGNALS_NAMESPACE
 
   // slot class template.
+  // This represents a model for a slot and can be created by the client.
   template<typename SlotFunction, class ThreadingModel = BOOST_SIGNALS_DEFAULT_MODEL>
   class slot 
-    : private BOOST_SIGNALS_NAMESPACE::detail::slot_signal_interface<
-                BOOST_SIGNALS_NAMESPACE::detail::signal_impl_base<ThreadingModel> 
-              > 
+    : private BOOST_SIGNALS_NAMESPACE::detail::
+               signal_impl_base<ThreadingModel>::slot_tracker_base_type
   {
-    typedef BOOST_SIGNALS_NAMESPACE::detail::slot_signal_interface<
-              BOOST_SIGNALS_NAMESPACE::detail::signal_impl_base<ThreadingModel> 
-            > base_type;
+    typedef typename BOOST_SIGNALS_NAMESPACE::detail::
+      signal_impl_base<ThreadingModel>::slot_tracker_base_type base_type;
+    typedef BOOST_SIGNALS_NAMESPACE::detail::slot_connection<SlotFunction,
+      ThreadingModel> slot_connection_type;
 
   public:
     template<typename F>
     slot(const F& f) 
-      : slot_function(
+      : base_type(&set_slot_state, &get_slot_state),
+      active_(true),
+      slot_function_(
         BOOST_SIGNALS_NAMESPACE::get_invocable_slot(f, BOOST_SIGNALS_NAMESPACE::tag_type(f))
-        )
+      )
     {
-      start_tracking(BOOST_SIGNALS_NAMESPACE::get_inspectable_slot(f, 
+      setup_tracking(BOOST_SIGNALS_NAMESPACE::get_inspectable_slot(f, 
         BOOST_SIGNALS_NAMESPACE::tag_type(f)));
+      start_tracking();
+      active_ = check_tracked_objects();
     }
 
 #ifdef __BORLANDC__
@@ -102,20 +153,44 @@ namespace boost {
     }
 #endif // __BORLANDC__
 
-    // We would have to enumerate all of the signalN classes here as friends
-    // to make this private (as it otherwise should be). We can't name all of
-    // them because we don't know how many there are.
-  public:
-    // Get the slot function to call the actual slot
-    const SlotFunction& get_slot_function() const { return slot_function; }
-
-    void release() const { stop_tracking(); }
-
   private:
+    friend BOOST_SIGNALS_NAMESPACE::detail::slot_friend;
+
+    shared_ptr<slot_connection_type> create_slot_connection() const
+    {
+      return shared_ptr<slot_connection_type>(
+          new slot_connection_type(slot_function_, bound_objects_)
+        );
+    }
+
+    bool is_active() const {
+      return active_;
+    }
+
+    // Static to-member forwarding for set and get.
+    static void set_slot_state(
+      BOOST_SIGNALS_NAMESPACE::detail::slot_connection_interface* p, 
+      bool* c, bool*)
+    {
+      if(c) {
+        static_cast<slot*>(p)->active_ = *c;
+      }
+    }
+
+    static void get_slot_state(
+      const BOOST_SIGNALS_NAMESPACE::detail::slot_connection_interface* p, 
+      bool* c, bool*)
+    {
+      if(c) {
+        *c = static_cast<const slot*>(p)->active_;
+      }
+    }
+
     slot(); // no default constructor
     slot& operator=(const slot&); // no assignment operator
 
-    SlotFunction slot_function;
+    SlotFunction slot_function_;
+    bool active_;
   };
 } // end namespace boost
 

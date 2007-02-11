@@ -115,4 +115,19 @@ namespace boost { namespace BOOST_SIGNALS_NAMESPACE { namespace detail {
     pos.group->second.erase(pos.slot_);
   }
 
+  struct is_connected {
+    bool operator()(const shared_ptr<slot_connection_interface>& slot) const {
+      bool c;
+      slot->get_slot_state(&c, 0);
+      return c;
+    }
+  };
+
+  // TODO: Get rid of the const_cast<>s
+  std::size_t named_slot_map::count() const
+  {
+    return std::count_if(
+      const_cast<named_slot_map*>(this)->begin(), 
+      const_cast<named_slot_map*>(this)->end(), is_connected());
+  }
 } } }

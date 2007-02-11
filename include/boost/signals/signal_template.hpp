@@ -95,9 +95,12 @@ namespace boost {
       // the bound arguments along to that underlying function object
       template<typename R>
       struct BOOST_SIGNALS_CALL_BOUND {
-        template<BOOST_SIGNALS_TEMPLATE_PARMS
-                 BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-                 typename F>
+        template<
+          BOOST_SIGNALS_TEMPLATE_PARMS
+          BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
+          typename F,
+          class TM
+        >
         struct caller {
           typedef BOOST_SIGNALS_ARGS_STRUCT<BOOST_SIGNALS_TEMPLATE_ARGS>*
             args_type;
@@ -109,10 +112,12 @@ namespace boost {
           caller() {}
           caller(args_type a) : args(a) {}
 
-          template<typename Pair>
-          R operator()(const Pair& slot) const
+          template<typename SlotPtr>
+          R operator()(const SlotPtr& ptr) const
           {
-            F* target = const_cast<F*>(unsafe_any_cast<F>(&slot.second));
+            const slot_connection<F, TM>* slot =
+              static_cast<const slot_connection<F, TM>*>(ptr.get());
+            F* target = const_cast<F*>(&(slot->get_slot_function()));
             return (*target)(BOOST_SIGNALS_BOUND_ARGS);
           }
         };
@@ -120,9 +125,12 @@ namespace boost {
 
       template<>
       struct BOOST_SIGNALS_CALL_BOUND<void> {
-        template<BOOST_SIGNALS_TEMPLATE_PARMS
-                 BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-                 typename F>
+        template<
+          BOOST_SIGNALS_TEMPLATE_PARMS
+          BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
+          typename F,
+          class TM
+        >
         struct caller {
           typedef BOOST_SIGNALS_ARGS_STRUCT<BOOST_SIGNALS_TEMPLATE_ARGS>*
             args_type;
@@ -133,10 +141,12 @@ namespace boost {
 
           caller(args_type a) : args(a) {}
 
-          template<typename Pair>
-          unusable operator()(const Pair& slot) const
+          template<typename SlotPtr>
+          unusable operator()(const SlotPtr& ptr) const
           {
-            F* target = const_cast<F*>(unsafe_any_cast<F>(&slot.second));
+            const slot_connection<F, TM>* slot =
+              static_cast<const slot_connection<F, TM>*>(ptr.get());
+            F* target = const_cast<F*>(&(slot->get_slot_function()));
             (*target)(BOOST_SIGNALS_BOUND_ARGS);
             return unusable();
           }
@@ -180,9 +190,6 @@ namespace boost {
     // Combiner type
     typedef Combiner combiner_type;
 
-    // Slot type
-    typedef slot<slot_function_type> slot_type;
-
     // Argument types (for boost::bind, etc.)
     BOOST_SIGNALS_ARG_TYPES
 
@@ -200,14 +207,23 @@ namespace boost {
       Combiner, 
       ThreadingModel> base_type;
 
+    typedef ThreadingModel threading_model_type;
+
   public:
     explicit
     BOOST_SIGNALS_SIGNAL(const Combiner& c = Combiner()) :
       base_type(c)
     { }
 
+    // Slot model type
+    typedef slot<slot_function_type, threading_model_type> slot_type;
+
+    // Slot connection type
+    typedef BOOST_SIGNALS_NAMESPACE::detail::slot_connection<slot_function_type, 
+      threading_model_type> slot_connection_type;
+
     template<typename Function>
-    void disconnect(const Function& f)
+    void do_disconnect(const Function& f, mpl::bool_<false>)
     {
       // Notify the slot handling code that we are iterating through the slots
       typename signal_impl_type::signal_lock lock(this->impl_);
@@ -215,9 +231,10 @@ namespace boost {
       if(lock) {
         iterator i = impl_->slots_.begin();
         while(i != impl_->slots_.end()) {
-          iterator tmp = ++i;
-          if((*tmp)->function_equal(f))
-            (*tmp)->release();
+          slot_connection_type* slot = 
+            static_cast<slot_connection_type*>((*i++).get());
+          if(slot->get_slot_function() == f)
+            slot->release();
         }
       }
     }
@@ -227,6 +244,9 @@ namespace boost {
     typedef BOOST_SIGNALS_NAMESPACE::detail::signal_base<
       Combiner,
       BOOST_SIGNALS_NAMESPACE::detail::legacy_implementation> base_type;
+
+    typedef BOOST_SIGNALS_NAMESPACE::detail::legacy_implementation 
+      threading_model_type;
 
     // The real slot name comparison object type
     typedef BOOST_SIGNALS_NAMESPACE::detail::group_bridge_compare<GroupCompare, Group>
@@ -243,10 +263,26 @@ namespace boost {
       base_type(c, real_group_compare_type(comp))
     { }
 
+    // Slot model type
+    typedef slot<slot_function_type, threading_model_type> slot_type;
+
+    // Slot connection type
+    typedef BOOST_SIGNALS_NAMESPACE::detail::slot_connection<slot_function_type, 
+      threading_model_type> slot_connection_type;
+
     BOOST_SIGNALS_NAMESPACE::connection
-    connect(const group_type&, const slot_type&,
+    connect(const group_type& group, const slot_type& slot_model,
             BOOST_SIGNALS_NAMESPACE::connect_position at
-              = BOOST_SIGNALS_NAMESPACE::at_back);
+            = BOOST_SIGNALS_NAMESPACE::at_back) 
+    {
+      if(!BOOST_SIGNALS_NAMESPACE::detail::slot_friend::is_active(slot_model)) {
+        return BOOST_SIGNALS_NAMESPACE::connection();
+      }
+
+      return impl_->connect_slot(group,
+        BOOST_SIGNALS_NAMESPACE::detail::slot_friend::create_slot(slot_model),
+        at);
+    }
 
 #  if BOOST_WORKAROUND(BOOST_MSVC, <= 1300)
     // MSVC 6.0 and 7.0 don't handle the is_convertible test well
@@ -266,21 +302,22 @@ namespace boost {
     // Disconnect a named slot
     void do_disconnect(const group_type& group, mpl::bool_<true>)
     {
-      impl_->disconnect(group);
+      impl_->slots_.disconnect(group);
     }
 
     template<typename Function>
     void do_disconnect(const Function& f, mpl::bool_<false>)
     {
       // Notify the slot handling code that we are iterating through the slots
-      typename signal_impl_type::signal_lock lock(this->impl);
+      typename signal_impl_type::signal_lock lock(this->impl_);
 
       if(lock) {
         iterator i = impl_->slots_.begin();
         while(i != impl_->slots_.end()) {
-          iterator tmp = ++i;
-          if((*tmp)->function_equal(f))
-            (*tmp)->release();
+          slot_connection_type* slot = 
+            static_cast<slot_connection_type*>((*i++).get());
+          if(slot->get_slot_function() == f)
+            slot->release();
         }
       }
     }
@@ -295,19 +332,30 @@ namespace boost {
     typedef typename outer_bound_slot_caller::template
               caller<BOOST_SIGNALS_TEMPLATE_ARGS
                      BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-                     slot_function_type>
+                     slot_function_type,
+                     threading_model_type>
       call_bound_slot;
 
   public:
     typedef BOOST_SIGNALS_NAMESPACE::detail::slot_call_iterator<
-              call_bound_slot, iterator> slot_call_iterator;
+              call_bound_slot, 
+              BOOST_SIGNALS_NAMESPACE::detail::signal_impl_base<threading_model_type>
+              > slot_call_iterator;
 
     // Connect a slot to this signal
     BOOST_SIGNALS_NAMESPACE::connection
-    connect(const slot_type&,
+    connect(const slot_type& slot_model,
             BOOST_SIGNALS_NAMESPACE::connect_position at
-              = BOOST_SIGNALS_NAMESPACE::at_back);
+              = BOOST_SIGNALS_NAMESPACE::at_back)
+    {
+      if(!BOOST_SIGNALS_NAMESPACE::detail::slot_friend::is_active(slot_model)) {
+        return BOOST_SIGNALS_NAMESPACE::connection();
+      }
 
+      return impl_->connect_slot(
+        BOOST_SIGNALS_NAMESPACE::detail::slot_friend::create_slot(slot_model),
+        at);
+    }
 
   public:
 
@@ -321,51 +369,6 @@ namespace boost {
     const Combiner& combiner() const
     { return impl_->combiner(); }
   };
-
-  template<
-    typename R,
-    BOOST_SIGNALS_TEMPLATE_PARMS
-    BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    typename Combiner,
-    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
-    typename SlotFunction
-  >
-  BOOST_SIGNALS_NAMESPACE::connection
-  BOOST_SIGNALS_SIGNAL<
-    R, BOOST_SIGNALS_TEMPLATE_ARGS
-    BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    Combiner,
-    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
-    SlotFunction
-  >::connect(const slot_type& in_slot,
-             BOOST_SIGNALS_NAMESPACE::connect_position at)
-  {
-    return impl_->connect_slot(shared_ptr<slot_type>(new slot_type(in_slot)),
-                              at);
-  }
-
-  template<
-    typename R,
-    BOOST_SIGNALS_TEMPLATE_PARMS
-    BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    typename Combiner,
-    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
-    typename SlotFunction
-  >
-  BOOST_SIGNALS_NAMESPACE::connection
-  BOOST_SIGNALS_SIGNAL<
-    R, BOOST_SIGNALS_TEMPLATE_ARGS
-    BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
-    Combiner,
-    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
-    SlotFunction
-  >::connect(const group_type& group,
-             const slot_type& in_slot,
-             BOOST_SIGNALS_NAMESPACE::connect_position at)
-  {
-    return impl_->connect_slot(shared_ptr<slot_type>(new slot_type(in_slot)),
-                              at);
-  }
 
   template<
     typename R,

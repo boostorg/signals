@@ -20,8 +20,7 @@ namespace boost {
       if(!dying_) {
         slot_iterator i = connected_slots_.begin(); 
         while(i != connected_slots_.end())  {
-          shared_ptr<detail::slot_connection_interface> sp((*i).lock());
-          if(sp && sp.get() != slot) {
+          if(*i != slot) {
               ++i;
           } else {
             i = connected_slots_.erase(i);
@@ -30,9 +29,9 @@ namespace boost {
       }
     }
 
-    void trackable::add_slot(const shared_ptr<detail::slot_connection_interface>& sp) const
+    void trackable::add_slot(detail::slot_connection_interface* p) const
     {
-      connected_slots_.push_back(sp);
+      connected_slots_.push_back(p);
     }
 
     trackable::~trackable()
@@ -42,10 +41,7 @@ namespace boost {
       for(slot_iterator i = connected_slots_.begin(); 
         i != connected_slots_.end(); ++i)  
       {
-        shared_ptr<detail::slot_connection_interface> sp((*i).lock());
-        if(sp) {
-          sp->set_slot_state(&connected, 0);
-        }
+          (*i)->set_slot_state(&connected, 0);
       }
     }
   } // end namespace BOOST_SIGNALS_NAMESPACE

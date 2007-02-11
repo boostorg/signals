@@ -12,6 +12,7 @@
 #define BOOST_SIGNALS_TRACKABLE_HPP
 
 #include <boost/signals/detail/config.hpp>
+#include <boost/signals/detail/signals_common.hpp>
 #include <boost/signals/detail/slot_connection_interface.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -54,10 +55,10 @@ namespace BOOST_SIGNALS_NAMESPACE {
   private:
     friend class detail::legacy_slot_tracking_base;
 
-    void add_slot(const shared_ptr<detail::slot_connection_interface>&) const;
+    void add_slot(detail::slot_connection_interface*) const;
     void remove_slot(const detail::slot_connection_interface*) const;
 
-    typedef std::list<weak_ptr<detail::slot_connection_interface> > slot_list;
+    typedef std::list<detail::slot_connection_interface*> slot_list;
     typedef slot_list::iterator slot_iterator;
 
     // List of connections that this object is part of
