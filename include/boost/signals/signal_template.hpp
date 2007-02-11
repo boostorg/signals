@@ -169,7 +169,7 @@ namespace boost {
   class BOOST_SIGNALS_SIGNAL :
 #ifdef BOOST_SIGNALS_NO_LEGACY_SUPPORT
     public BOOST_SIGNALS_NAMESPACE::detail::signal_base<Combiner, 
-                                                        ThreadingModel>,
+                                                        ThreadingModel>
 #else // def BOOST_SIGNALS_NO_LEGACY_SUPPORT
     public BOOST_SIGNALS_NAMESPACE::detail::signal_base<Combiner, 
       BOOST_SIGNALS_NAMESPACE::detail::legacy_implementation>,
@@ -223,7 +223,7 @@ namespace boost {
       threading_model_type> slot_connection_type;
 
     template<typename Function>
-    void do_disconnect(const Function& f, mpl::bool_<false>)
+    void disconnect(const Function& f)
     {
       // Notify the slot handling code that we are iterating through the slots
       typename signal_impl_type::signal_lock lock(this->impl_);
@@ -457,6 +457,38 @@ namespace boost {
                       slot_call_iterator(impl_->slots_.end(),
                                          impl_->slots_.end(), f, cache));
   }
+
+#ifndef BOOST_FUNCTION_NO_FUNCTION_TYPE_SYNTAX
+  namespace BOOST_SIGNALS_NAMESPACE {
+    namespace detail {
+      template<int Arity,
+               typename Signature,
+               typename Combiner,
+               BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
+               typename SlotFunction>
+      class real_get_signal_impl;
+
+      template<typename Signature,
+               typename Combiner,
+               BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
+               typename SlotFunction>
+      class real_get_signal_impl<BOOST_SIGNALS_NUM_ARGS, Signature, Combiner, 
+                                 BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+                                 SlotFunction>
+      {
+        typedef function_traits<Signature> traits;
+
+      public:
+        typedef BOOST_SIGNALS_SIGNAL<typename traits::result_type,
+                        BOOST_SIGNALS_TRAITS_ARG_TYPES
+                        BOOST_SIGNALS_COMMA_IF_NONZERO_ARGS
+                        Combiner,
+                        BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
+                        SlotFunction> type;
+      };
+    } // namespace detail
+  } // namespace BOOST_SIGNALS_NAMESPACE
+#endif // ndef BOOST_FUNCTION_NO_FUNCTION_TYPE_SYNTAX
 } // namespace boost
 
 #undef BOOST_SIGNAL_FUNCTION_N_HEADER

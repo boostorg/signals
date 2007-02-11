@@ -26,10 +26,13 @@ namespace boost {
     namespace detail {
       // signal_impl_base class template.
       template<class ThreadingModel>
-      class BOOST_SIGNALS_DECL signal_impl_base : public ThreadingModel 
+      class BOOST_SIGNALS_DECL signal_impl_base 
+        : public ThreadingModel, 
+        public enable_shared_from_this<signal_impl_base<ThreadingModel> > 
       {
       public:
         typedef slot_signal_interface<signal_impl_base> slot_interface;
+        typedef slot_tracking_base slot_tracker_base_type;
 
         signal_impl_base()
         { }
@@ -60,11 +63,26 @@ namespace boost {
         }
 
         connection connect_slot(const shared_ptr<slot_interface>& slot,
-                                connect_position at);
+                                connect_position at)
+        {
+          local_lock lock(this);
+          slot_iterator pos;
+          if(at == at_back) {
+            pos = slots_.insert(slots_.end(), slot);
+          } else {
+            pos = slots_.insert(slots_.begin(), slot);
+          }
+          slot->reset(shared_from_this(), pos);
+          return connection(slot);
+        }
 
       public:
         typedef std::list<shared_ptr<slot_interface> > slot_container;
         typedef typename slot_container::iterator slot_iterator;
+
+        void remove_slot(const slot_iterator& pos) {
+          slots_.erase(pos);
+        }
 
         // Slots
         mutable slot_container slots_;

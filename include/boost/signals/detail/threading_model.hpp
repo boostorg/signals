@@ -61,7 +61,7 @@ namespace boost {
       // Does nothing in this threading model.
       struct local_lock
       {
-        local_lock(void*)
+        local_lock(const void*)
         { }
       };
     };

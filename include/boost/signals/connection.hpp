@@ -72,17 +72,17 @@ namespace boost {
     public:
       // Default construction creates a connection that's not associated with
       // a slot.
-      connection() : slot_(), identity_(new char()) 
+      connection() : slot_()
       { }
       // Construction from a shared_ptr to a slot.
       explicit connection(const shared_ptr<
         BOOST_SIGNALS_NAMESPACE::detail::slot_connection_interface
       >& slot) 
-        : slot_(slot), identity_(new char()) 
+        : slot_(slot)
       { }
       // Copy construction.
       connection(const connection& other) 
-        : slot_(other.slot_), identity_(other.identity_)
+        : slot_(other.slot_)
       { }
       // Destruction.
       ~connection()
@@ -104,31 +104,27 @@ namespace boost {
 
       // Comparison of connections.
       bool operator==(const connection& other) const {
-        return identity_ == other.identity_;
+        return !(slot_ < other.slot_) && !(other.slot_ < slot_);
       }
       bool operator<(const connection& other) const {
-        return identity_ < other.identity_;
-      }
+        return slot_ < other.slot_;
+       }
 
       // Connection assignment.
       connection& operator=(const connection& other) {
         slot_ = other.slot_;
-        identity_ = other.identity_;
         return *this;
       }
 
       // Swap connections.
       void swap(connection& other) {
         this->slot_.swap(other.slot_);
-        std::swap(this->identity_, other.identity_);
-      }
+       }
 
     private:
       // Pointer to the slot-connection interface.
       weak_ptr<BOOST_SIGNALS_NAMESPACE::detail::slot_connection_interface> 
         slot_;
-      // Raw pointer to the original connection for comparisons.
-      shared_ptr<char> identity_;
     };
 
     // scoped_connection class.

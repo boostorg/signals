@@ -33,282 +33,36 @@
 #  include BOOST_ABI_PREFIX
 #endif
 
-namespace boost {
 #ifndef BOOST_FUNCTION_NO_FUNCTION_TYPE_SYNTAX
+
+// Define generation-dependent part of the signature
+#  ifndef BOOST_SIGNALS_NO_LEGACY_SUPPORT
+#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT \
+      typename Group = int,\
+      typename GroupCompare = std::less<Group>
+#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS typename Group,\
+      typename GroupCompare
+#    define BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS Group, GroupCompare
+
+#  else
+#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT \
+    typename ThreadingModel = BOOST_SIGNALS_NAMESPACE::single_threaded
+#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS typename ThreadingModel
+#    define BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS ThreadingModel
+#  endif // ndef BOOST_SIGNALS_NO_LEGACY_SUPPORT
+
+namespace boost {
   namespace BOOST_SIGNALS_NAMESPACE {
     namespace detail {
-      template<int Arity,
-               typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl;
-
       template<typename Signature,
                typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<0, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal0<typename traits::result_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<1, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal1<typename traits::result_type,
-                        typename traits::arg1_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<2, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal2<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<3, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal3<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        typename traits::arg3_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<4, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal4<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        typename traits::arg3_type,
-                        typename traits::arg4_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<5, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal5<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        typename traits::arg3_type,
-                        typename traits::arg4_type,
-                        typename traits::arg5_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<6, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal6<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        typename traits::arg3_type,
-                        typename traits::arg4_type,
-                        typename traits::arg5_type,
-                        typename traits::arg6_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<7, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal7<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        typename traits::arg3_type,
-                        typename traits::arg4_type,
-                        typename traits::arg5_type,
-                        typename traits::arg6_type,
-                        typename traits::arg7_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<8, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal8<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        typename traits::arg3_type,
-                        typename traits::arg4_type,
-                        typename traits::arg5_type,
-                        typename traits::arg6_type,
-                        typename traits::arg7_type,
-                        typename traits::arg8_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<9, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal9<typename traits::result_type,
-                        typename traits::arg1_type,
-                        typename traits::arg2_type,
-                        typename traits::arg3_type,
-                        typename traits::arg4_type,
-                        typename traits::arg5_type,
-                        typename traits::arg6_type,
-                        typename traits::arg7_type,
-                        typename traits::arg8_type,
-                        typename traits::arg9_type,
-                        Combiner,
-                        Group,
-                        GroupCompare,
-                        SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
-               typename SlotFunction>
-      class real_get_signal_impl<10, Signature, Combiner, Group, GroupCompare,
-                                 SlotFunction>
-      {
-        typedef function_traits<Signature> traits;
-
-      public:
-        typedef signal10<typename traits::result_type,
-                         typename traits::arg1_type,
-                         typename traits::arg2_type,
-                         typename traits::arg3_type,
-                         typename traits::arg4_type,
-                         typename traits::arg5_type,
-                         typename traits::arg6_type,
-                         typename traits::arg7_type,
-                         typename traits::arg8_type,
-                         typename traits::arg9_type,
-                         typename traits::arg10_type,
-                         Combiner,
-                         Group,
-                         GroupCompare,
-                         SlotFunction> type;
-      };
-
-      template<typename Signature,
-               typename Combiner,
-               typename Group,
-               typename GroupCompare,
+               BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
                typename SlotFunction>
       struct get_signal_impl :
         public real_get_signal_impl<(function_traits<Signature>::arity),
                                     Signature,
                                     Combiner,
-                                    Group,
-                                    GroupCompare,
+                                    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
                                     SlotFunction>
       {
       };
@@ -322,34 +76,40 @@ namespace boost {
   template<
     typename Signature, // function type R (T1, T2, ..., TN)
     typename Combiner = last_value<typename function_traits<Signature>::result_type>,
-    typename Group = int,
-    typename GroupCompare = std::less<Group>,
+    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT,
     typename SlotFunction = function<Signature>
   >
   class signal :
-    public BOOST_SIGNALS_NAMESPACE::detail::get_signal_impl<Signature,
-                                                            Combiner,
-                                                            Group,
-                                                            GroupCompare,
+    public BOOST_SIGNALS_NAMESPACE::detail::get_signal_impl<Signature, Combiner,
+                                                            BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
                                                             SlotFunction>::type
   {
     typedef typename BOOST_SIGNALS_NAMESPACE::detail::get_signal_impl<
                        Signature,
                        Combiner,
-                       Group,
-                       GroupCompare,
+                       BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
                        SlotFunction>::type base_type;
 
   public:
+#  ifdef BOOST_SIGNALS_NO_LEGACY_SUPPORT
+    explicit signal(const Combiner& combiner = Combiner())
+      : base_type(combiner)
+    { }
+
+#  else
     explicit signal(const Combiner& combiner = Combiner(),
                     const GroupCompare& group_compare = GroupCompare()) :
       base_type(combiner, group_compare)
-    {
-    }
+    { }
+#  endif // def BOOST_SIGNALS_NO_LEGACY_SUPPORT
   };
-#endif // ndef BOOST_FUNCTION_NO_FUNCTION_TYPE_SYNTAX
-
 } // end namespace boost
+
+#  undef BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT
+#  undef BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS
+#  undef BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS
+
+#endif // ndef BOOST_FUNCTION_NO_FUNCTION_TYPE_SYNTAX
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_SUFFIX

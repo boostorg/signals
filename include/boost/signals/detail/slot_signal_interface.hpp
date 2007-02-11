@@ -11,7 +11,7 @@
 #ifndef BOOST_SIGNALS_DETAIL_SLOT_SIGNAL_INTERFACE_HPP
 #define BOOST_SIGNALS_DETAIL_SLOT_SIGNAL_INTERFACE_HPP
 
-#include <boost/signals/detail/slot_connection_interface.hpp>
+#include <boost/signals/detail/slot_tracking_base.hpp>
 #include <boost/shared_ptr.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
@@ -64,6 +64,10 @@ namespace boost {
         // Check the blocking state from a locked signal context.
         bool blocked() const {
           return block_ != 0;
+        }
+        // Check the callability from a locked signal context.
+        bool callable() const {
+          return !disconnected_ && (block_ == 0);
         }
 
         // Initialize the slot-signal connection.
