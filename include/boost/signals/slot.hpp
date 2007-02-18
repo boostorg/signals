@@ -12,22 +12,17 @@
 #define BOOST_SIGNALS_SLOT_HEADER
 
 #include <boost/signals/detail/signals_common.hpp>
-#include <boost/signals/detail/threading_model.hpp>
+#include <boost/signals/single_threaded.hpp>
 #include <boost/signals/detail/slot_signal_interface.hpp>
-#ifdef BOOST_SIGNALS_NO_LEGACY_SUPPORT
-#  define BOOST_SIGNALS_DEFAULT_MODEL boost::BOOST_SIGNALS_NAMESPACE::single_threaded
-#else
-#include <boost/signals/detail/legacy/legacy_implementation.hpp>
-#  define BOOST_SIGNALS_DEFAULT_MODEL boost::BOOST_SIGNALS_NAMESPACE::detail::legacy_implementation
-#endif // def BOOST_SIGNALS_NO_LEGACY_SUPPORT
 #include <boost/signals/detail/signal_impl_base.hpp>
+#include <boost/signals/detail/slot_tracking_base.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX
 #endif
 
 namespace boost {
-  template<typename F, class TM>
+  template<typename F>
   class slot;
 
   namespace BOOST_SIGNALS_NAMESPACE {
@@ -35,18 +30,29 @@ namespace boost {
       // slot_connection class template.
       // This represents an actual callable slot stored in a signal and refered
       // to by client connections.
-      template<typename SlotFunction, class ThreadingModel>
+      template<typename SlotFunction,
+        typename Group,
+        typename GroupCompare,
+        typename ThreadingModel,
+        typename Allocator
+      >
       class slot_connection 
-        : public slot_signal_interface<signal_impl_base<ThreadingModel> > 
+        : public slot_signal_interface<signal_impl_base<Group, 
+                                                        GroupCompare, 
+                                                        ThreadingModel,
+                                                        Allocator> > 
       {
-        typedef slot_signal_interface<signal_impl_base<ThreadingModel> > base_type;
+        typedef slot_signal_interface<signal_impl_base<Group, 
+                                                        GroupCompare, 
+                                                        ThreadingModel,
+                                                        Allocator> > base_type;
       public:
         slot_connection(const SlotFunction& f, 
-          const typename base_type::bound_objects_container& bo)
+          const typename base_type::trackable_objects_container& bo)
           : slot_function_(f)
         {
           // TODO: Could optimize the vector size with a reserve() here.
-          bound_objects_ = bo;
+          trackable_objects_ = bo;
           start_tracking();
         }
 
@@ -62,14 +68,14 @@ namespace boost {
       // (We can't make all the possible signal instantiations friends).
       struct slot_friend
       {
-        template<typename F, class TM>
-        static shared_ptr<slot_connection<F, TM> > 
-          create_slot(const slot<F,TM>& slot) {
-            return slot.create_slot_connection();
+        template<typename F, class G, class GC, class TM, class A>
+        static shared_ptr<slot_connection<F,G,GC,TM,A> > 
+          create_slot(const slot<F>& slot) {
+            return slot.create_slot_connection<slot_connection<F,G,GC,TM,A> >();
         }
       
-        template<typename F, class TM>
-        static bool is_active(const slot<F,TM>& slot) {
+        template<typename F>
+        static bool is_active(const slot<F>& slot) {
             return slot.is_active();
         }
       };
@@ -121,15 +127,11 @@ namespace boost {
 
   // slot class template.
   // This represents a model for a slot and can be created by the client.
-  template<typename SlotFunction, class ThreadingModel = BOOST_SIGNALS_DEFAULT_MODEL>
+  template<typename SlotFunction>
   class slot 
-    : private BOOST_SIGNALS_NAMESPACE::detail::
-               signal_impl_base<ThreadingModel>::slot_tracker_base_type
+    : private BOOST_SIGNALS_NAMESPACE::detail::dual_slot_tracking_base
   {
-    typedef typename BOOST_SIGNALS_NAMESPACE::detail::
-      signal_impl_base<ThreadingModel>::slot_tracker_base_type base_type;
-    typedef BOOST_SIGNALS_NAMESPACE::detail::slot_connection<SlotFunction,
-      ThreadingModel> slot_connection_type;
+    typedef BOOST_SIGNALS_NAMESPACE::detail::dual_slot_tracking_base base_type;
 
   public:
     template<typename F>
@@ -156,10 +158,11 @@ namespace boost {
   private:
     friend BOOST_SIGNALS_NAMESPACE::detail::slot_friend;
 
-    shared_ptr<slot_connection_type> create_slot_connection() const
+    template<typename T>
+    shared_ptr<T> create_slot_connection() const
     {
-      return shared_ptr<slot_connection_type>(
-          new slot_connection_type(slot_function_, bound_objects_)
+      return shared_ptr<T>(
+          new T(slot_function_, trackable_objects_)
         );
     }
 

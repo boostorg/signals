@@ -31,7 +31,8 @@ namespace boost {
 
 namespace BOOST_SIGNALS_NAMESPACE {
   namespace detail {
-    class legacy_slot_tracking_base;
+    // dual_slot_tracking_base forward declaration for friend declaration.
+    class dual_slot_tracking_base;
   }
   // Base class for "trackable" objects that can be tracked when they are
   // bound in slot target functions. When a trackable object is destroyed,
@@ -53,7 +54,7 @@ namespace BOOST_SIGNALS_NAMESPACE {
     }
 
   private:
-    friend class detail::legacy_slot_tracking_base;
+    friend class detail::dual_slot_tracking_base;
 
     void add_slot(detail::slot_connection_interface*) const;
     void remove_slot(const detail::slot_connection_interface*) const;
@@ -70,10 +71,10 @@ namespace BOOST_SIGNALS_NAMESPACE {
 
   namespace detail {
     // A visitor that adds each trackable object to a vector
-    class bound_objects_visitor {
+    class trackable_objects_visitor {
     public:
-      bound_objects_visitor(std::vector<const trackable*>& v) :
-        bound_objects(v)
+      trackable_objects_visitor(std::vector<const trackable*>& v) :
+        trackable_objects_(v)
       {
       }
 
@@ -117,7 +118,7 @@ namespace BOOST_SIGNALS_NAMESPACE {
       inline void add_if_trackable(const trackable* b) const
       {
         if (b) {
-          bound_objects.push_back(b);
+          trackable_objects_.push_back(b);
         }
       }
 
@@ -166,7 +167,7 @@ namespace BOOST_SIGNALS_NAMESPACE {
       inline void
       add_if_trackable(R (*)(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)) const { }
 
-      std::vector<const trackable*>& bound_objects;
+      std::vector<const trackable*>& trackable_objects_;
     };
   } // end namespace detail
 } // end namespace BOOST_SIGNALS_NAMESPACE

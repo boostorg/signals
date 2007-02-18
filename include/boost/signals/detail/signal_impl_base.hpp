@@ -11,11 +11,13 @@
 #ifndef BOOST_SIGNALS_DETAIL_SIGNAL_IMPL_HEADER
 #define BOOST_SIGNALS_DETAIL_SIGNAL_IMPL_HEADER
 
-#include <boost/signals/detail/config.hpp>
 #include <boost/signals/detail/signals_common.hpp>
-#include <boost/signals/detail/connect_position.hpp>
+#include <boost/signals/detail/unnamed_slot_container.hpp>
+#include <boost/signals/detail/named_slot_container.hpp>
 #include <boost/signals/detail/slot_signal_interface.hpp>
 #include <boost/signals/connection.hpp>
+#include <boost/mpl/if.hpp>
+#include <boost/type_traits/is_same.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX
@@ -24,17 +26,42 @@
 namespace boost {
   namespace BOOST_SIGNALS_NAMESPACE {
     namespace detail {
+      // select_slot_container template.
+      // Determine the proper type for slot storage from the Group and GroupCompare
+      // template arguments.
+      template<typename T,
+        typename Group,
+        typename GroupCompare,
+        typename Allocator
+      >
+      struct select_slot_container
+      {
+        typedef typename mpl::if_<
+          is_same<Group, no_name>,
+            unnamed_slot_container<T, Allocator>,
+            named_slot_container<T, Group, GroupCompare, Allocator>
+        >::type type;
+      };
+
       // signal_impl_base class template.
-      template<class ThreadingModel>
+      template<typename Group,
+               typename GroupCompare,
+               typename ThreadingModel,
+               typename Allocator
+      >
       class BOOST_SIGNALS_DECL signal_impl_base 
-        : public ThreadingModel, 
-        public enable_shared_from_this<signal_impl_base<ThreadingModel> > 
+        : public ThreadingModel::signal_impl_threading_base_type, 
+        public enable_shared_from_this<signal_impl_base<Group, 
+                                                        GroupCompare, 
+                                                        ThreadingModel, 
+                                                        Allocator> >,
+        public ThreadingModel
       {
       public:
         typedef slot_signal_interface<signal_impl_base> slot_interface;
-        typedef slot_tracking_base slot_tracker_base_type;
 
-        signal_impl_base()
+        signal_impl_base(const GroupCompare& comp)
+          : slots_(comp)
         { }
         ~signal_impl_base()
         { }
@@ -62,22 +89,43 @@ namespace boost {
           return slots_.size();
         }
 
+        // Connect an unnamed slot.
         connection connect_slot(const shared_ptr<slot_interface>& slot,
                                 connect_position at)
         {
           local_lock lock(this);
-          slot_iterator pos;
-          if(at == at_back) {
-            pos = slots_.insert(slots_.end(), slot);
-          } else {
-            pos = slots_.insert(slots_.begin(), slot);
-          }
+          slot_iterator pos = slots_.insert(slot, at);
           slot->reset(shared_from_this(), pos);
           return connection(slot);
         }
 
+        // Connect a named slot.
+        connection connect_slot(const shared_ptr<slot_interface>& slot,
+                                const Group& group,
+                                connect_position at)
+        {
+          local_lock lock(this);
+          slot_iterator pos = slots_.insert(slot, group, at);
+          slot->reset(shared_from_this(), pos);
+          return connection(slot);
+        }
+
+        // Disconnect a slot group.
+        void disconnect(const Group& group)
+        {
+          local_lock lock(this);
+          std::pair<slot_iterator, slot_iterator> range = slots_.group_range(group);
+          slot_iterator it = range.first;
+          while(it != range.second) {
+            slot_iterator tmp = it++;
+            (*tmp)->disconnect();
+          }
+        }
       public:
-        typedef std::list<shared_ptr<slot_interface> > slot_container;
+        typedef typename select_slot_container<shared_ptr<slot_interface>, 
+                                               Group, 
+                                               GroupCompare,
+                                               Allocator>::type slot_container;
         typedef typename slot_container::iterator slot_iterator;
 
         void remove_slot(const slot_iterator& pos) {

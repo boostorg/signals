@@ -26,11 +26,11 @@ namespace boost {
       // library that are aware of the signal implementation in use.
       template<class SignalImpl>
       class slot_signal_interface 
-        : public SignalImpl::slot_tracker_base_type
+        : public SignalImpl::slot_tracking_base_type
       {
         typedef typename SignalImpl::slot_iterator iterator;
         typedef typename SignalImpl::signal_lock signal_lock;
-        typedef typename SignalImpl::slot_tracker_base_type base_type;
+        typedef typename SignalImpl::slot_tracking_base_type base_type;
       public:
         // Acquire the slot from a locked signal context (protect it from being 
         // removed). This and release() below is used to ensure a valid iterator
@@ -57,16 +57,26 @@ namespace boost {
           }
         }
 
+        // Release if not already disconnected.
+        void disconnect() 
+        {
+          if(!disconnected())
+            release();
+        }
+
         // Check the connection state from a locked signal context.
-        bool disconnected() const {
+        bool disconnected() const 
+        {
           return disconnected_;
         }
         // Check the blocking state from a locked signal context.
-        bool blocked() const {
+        bool blocked() const 
+        {
           return block_ != 0;
         }
         // Check the callability from a locked signal context.
-        bool callable() const {
+        bool callable() const 
+        {
           return !disconnected_ && (block_ == 0);
         }
 

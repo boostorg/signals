@@ -35,35 +35,26 @@
 
 #ifndef BOOST_FUNCTION_NO_FUNCTION_TYPE_SYNTAX
 
-// Define generation-dependent part of the signature
-#  ifndef BOOST_SIGNALS_NO_LEGACY_SUPPORT
-#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT \
-      typename Group = int,\
-      typename GroupCompare = std::less<Group>
-#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS typename Group,\
-      typename GroupCompare
-#    define BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS Group, GroupCompare
-
-#  else
-#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT \
-    typename ThreadingModel = BOOST_SIGNALS_NAMESPACE::single_threaded
-#    define BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS typename ThreadingModel
-#    define BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS ThreadingModel
-#  endif // ndef BOOST_SIGNALS_NO_LEGACY_SUPPORT
-
 namespace boost {
   namespace BOOST_SIGNALS_NAMESPACE {
     namespace detail {
       template<typename Signature,
                typename Combiner,
-               BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS,
-               typename SlotFunction>
+               typename Group,
+               typename GroupCompare,
+               typename SlotFunction,
+               typename ThreadingModel,
+               typename Allocator
+      >
       struct get_signal_impl :
         public real_get_signal_impl<(function_traits<Signature>::arity),
                                     Signature,
                                     Combiner,
-                                    BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
-                                    SlotFunction>
+                                    Group,
+                                    GroupCompare,
+                                    SlotFunction,
+                                    ThreadingModel,
+                                    Allocator>
       {
       };
 
@@ -75,39 +66,40 @@ namespace boost {
   // class name.
   template<
     typename Signature, // function type R (T1, T2, ..., TN)
-    typename Combiner = last_value<typename function_traits<Signature>::result_type>,
-    BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT,
-    typename SlotFunction = function<Signature>
+    typename Combiner       = BOOST_SIGNALS_NAMESPACE::use_default,
+    typename Group          = BOOST_SIGNALS_NAMESPACE::use_default,
+    typename GroupCompare   = BOOST_SIGNALS_NAMESPACE::use_default,
+    typename SlotFunction   = BOOST_SIGNALS_NAMESPACE::use_default,
+    typename ThreadingModel = BOOST_SIGNALS_NAMESPACE::use_default,
+    typename Allocator      = BOOST_SIGNALS_NAMESPACE::use_default
   >
   class signal :
-    public BOOST_SIGNALS_NAMESPACE::detail::get_signal_impl<Signature, Combiner,
-                                                            BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
-                                                            SlotFunction>::type
+    public BOOST_SIGNALS_NAMESPACE::detail::get_signal_impl<Signature, 
+                                                            Combiner,
+                                                            Group,
+                                                            GroupCompare,
+                                                            SlotFunction,
+                                                            ThreadingModel,
+                                                            Allocator>::type
   {
     typedef typename BOOST_SIGNALS_NAMESPACE::detail::get_signal_impl<
                        Signature,
                        Combiner,
-                       BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS,
-                       SlotFunction>::type base_type;
+                       Group,
+                       GroupCompare,
+                       SlotFunction,
+                       ThreadingModel,
+                       Allocator>::type base_type;
 
   public:
-#  ifdef BOOST_SIGNALS_NO_LEGACY_SUPPORT
-    explicit signal(const Combiner& combiner = Combiner())
-      : base_type(combiner)
+    explicit signal(const typename base_type::combiner_type& 
+      combiner = combiner_type(),
+      const typename base_type::group_compare_type& 
+      group_compare = group_compare_type()) 
+      : base_type(combiner, group_compare)
     { }
-
-#  else
-    explicit signal(const Combiner& combiner = Combiner(),
-                    const GroupCompare& group_compare = GroupCompare()) :
-      base_type(combiner, group_compare)
-    { }
-#  endif // def BOOST_SIGNALS_NO_LEGACY_SUPPORT
   };
 } // end namespace boost
-
-#  undef BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS_WITH_DEFAULT
-#  undef BOOST_SIGNALS_GENERATION_TEMPLATE_PARMS
-#  undef BOOST_SIGNALS_GENERATION_TEMPLATE_ARGS
 
 #endif // ndef BOOST_FUNCTION_NO_FUNCTION_TYPE_SYNTAX
 

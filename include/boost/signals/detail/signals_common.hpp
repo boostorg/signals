@@ -25,24 +25,23 @@
 
 namespace boost {
   namespace BOOST_SIGNALS_NAMESPACE {
+    // no_name type
+    // Represents disabled grouping of slots when provided as a group
+    // type.
+    struct no_name { };
+
     namespace detail {
+      // no_name_compare type
+      // Simple comparison predicate replacement for signals using the no_name
+      // group type.
+      struct no_name_compare { };
+
       // The unusable class is a placeholder for unused function arguments
       // It is also completely unusable except that it constructable from
       // anything. This helps compilers without partial specialization
       // handle slots returning void.
       struct unusable {
         unusable() {}
-      };
-
-      // Determine the result type of a slot call
-      template<typename R>
-      struct slot_result_type {
-        typedef R type;
-      };
-
-      template<>
-      struct slot_result_type<void> {
-        typedef unusable type;
       };
 
       struct signal_base_tag;
