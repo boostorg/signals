@@ -3,7 +3,7 @@
   "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
 <section last-revision="$Date$">
   <title>Frequently Asked Questions</title>
-  
+
   <qandaset>
     <qandaentry>
       <question>
@@ -23,10 +23,9 @@
         <para>Is Boost.Signals thread-safe?</para>
       </question>
       <answer>
-        <para>No. Using Boost.Signals in a multithreaded concept is
-        very dangerous, and it is very likely that the results will be
-        less than satisfying. Boost.Signals will support thread safety
-        in the future.</para>
+        <para>Yes, if the ThreadingModel template parameter of the signal is set to
+        boost::signals::multi_threaded.  If you use thread-safe signals
+        in your code, you will also have to link to libboost_thread.</para>
       </answer>
     </qandaentry>
     <qandaentry>
@@ -71,7 +70,7 @@ macx:LIBS   += /usr/local/lib/libboost_signals-1_33_1.a  # ...your exact paths m
         ways to do this:</para>
 
         <para>The first way involves defining
-        the <code>BOOST_SIGNALS_NAMESPACE</code> 
+        the <code>BOOST_SIGNALS_NAMESPACE</code>
         macro to some other identifier (e.g., <code>signalslib</code>)
         when building and using the Boost.Signals library. Then the
         namespace of the Boost.Signals library will be
