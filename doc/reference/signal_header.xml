@@ -28,8 +28,10 @@
         <template-type-parameter name="SlotFunction">
           <default><classname>functionN</classname>&lt;R, T1, T2, ..., TN&gt;</default>
         </template-type-parameter>
+        <template-type-parameter name="ThreadingModel">
+          <default><classname>signals::single_threaded</classname></default>
+        </template-type-parameter>
       </template>
-      <inherit access="public"><classname>signals::trackable</classname></inherit>
       <inherit access="private">
         <type><classname>noncopyable</classname></type>
 	<purpose>Exposition only</purpose>
@@ -37,7 +39,7 @@
 
       <purpose>Set of safe multicast callback types.</purpose>
 
-      <description> 
+      <description>
         <para>The class template <classname>signalN</classname> covers
          several related classes signal0, signal1, signal2, etc.,
          where the number suffix describes the number of function
@@ -152,7 +154,7 @@
 
           <throws><simpara>This routine meets the strong exception guarantee,
           where any exception thrown will cause the slot to not be
-          connected to the signal.</simpara></throws> 
+          connected to the signal.</simpara></throws>
 
           <complexity><simpara>Constant time when connecting a slot
           without a group name or logarithmic in the number of groups
@@ -196,7 +198,7 @@
           number of slots connected to the
           signal.</simpara></complexity>
         </overloaded-method>
- 
+
         <method name="disconnect_all_slots">
           <type>void</type>
           <effects><simpara>Disconnects all slots connected to the signal.</simpara></effects>
@@ -257,7 +259,7 @@
             <parameter><paramtype>...</paramtype></parameter>
             <parameter name="aN"><paramtype>argN_type</paramtype></parameter>
           </signature>
- 
+
           <signature cv="const">
             <type>result_type</type>
             <parameter name="a1"><paramtype>arg1_type</paramtype></parameter>
@@ -296,27 +298,31 @@
           invoke the combiner as
           non-<computeroutput>const</computeroutput>.</simpara>
 
-          <simpara>Calling the function call operator may invoke undefined
-          behavior if no slots are connected to the signal, depending
-          on the combiner used. The default combiner is well-defined
-          for zero slots when the return type is void but is undefined
-          when the return type is any other type (because there is no
+          <simpara>Calling the function call operator may throw an
+          exception if no slots are connected to the signal, depending
+          on the combiner used. The default combiner will not throw
+          for zero slots when the return type is <code>void</code> or
+          <code>boost::optional&lt;T&gt;</code>,
+          but will throw when the return type is any other type (because there is no
           way to synthesize a return value).</simpara></notes>
         </overloaded-method>
       </method-group>
 
       <method-group name="combiner access">
-        <overloaded-method name="combiner">
-          <signature>
-            <type>combiner_type&amp;</type>
-          </signature>
-          <signature cv="const">
-            <type>const combiner_type&amp;</type>
-          </signature>
+        <method name="combiner" cv="const">
+          <type>combiner_type</type>
 
-          <returns><simpara>A reference to the stored combiner.</simpara></returns>
+          <returns><simpara>A copy of the stored combiner.</simpara></returns>
           <throws><simpara>Will not throw.</simpara></throws>
-        </overloaded-method>
+        </method>
+        <method name="set_combiner">
+          <type>void</type>
+          <parameter name="combiner"><paramtype>const combiner_type&amp;</paramtype></parameter>
+
+          <effects><simpara>Copies a new combiner into the signal for use with
+          future signal invocations.</simpara></effects>
+          <throws><simpara>Will not throw.</simpara></throws>
+        </method>
       </method-group>
     </class>
 
@@ -350,7 +356,7 @@
         type with N arguments instead of N separate arguments, and
         derives from the appropriate <classname>signalN</classname>
         instantiation.</para>
-      
+
         <para>All functionality of this class template is in its base
         class <classname>signalN</classname>.</para>
       </description>
