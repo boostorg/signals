@@ -302,7 +302,7 @@
           exception if no slots are connected to the signal, depending
           on the combiner used. The default combiner will not throw
           for zero slots when the return type is <code>void</code> or
-          <code>boost::optional&lt;T&gt;</code>,
+          <classname>optional</classname>&lt;T&gt;,
           but will throw when the return type is any other type (because there is no
           way to synthesize a return value).</simpara></notes>
         </overloaded-method>
@@ -341,11 +341,14 @@
           <default><classname>std::less</classname>&lt;Group&gt;</default>
         </template-type-parameter>
         <template-type-parameter name="SlotFunction">
-          <default><classname>functionN</classname>&lt;Signature&gt;</default>
+          <default><classname>function</classname>&lt;Signature&gt;</default>
+        </template-type-parameter>
+        <template-type-parameter name="ThreadingModel">
+          <default><classname>signals::single_threaded</classname></default>
         </template-type-parameter>
       </template>
 
-      <inherit access="public"><classname>signalN</classname>&lt;R, T1, T2, ..., TN, Combiner, Group, GroupCompare, SlotFunction&gt;</inherit>
+      <inherit access="public"><classname>signalN</classname>&lt;R, T1, T2, ..., TN, Combiner, Group, GroupCompare, SlotFunction, ThreadingModel&gt;</inherit>
       <purpose>Safe multicast callback.</purpose>
 
       <description>
