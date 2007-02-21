@@ -57,7 +57,7 @@ int test_main(int, char*[])
 
     sig_type::slot_type slot(boost::bind<int>(swallow(), shorty, _1));
     delete shorty;
-
+    s1.connect(slot);
     BOOST_CHECK(s1(5) == 0);
   }
 
