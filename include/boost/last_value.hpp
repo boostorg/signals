@@ -13,11 +13,12 @@
 
 #include <cassert>
 #include <boost/optional.hpp>
+#include <boost/weak_ptr.hpp>
 #include <stdexcept>
 
 namespace boost {
   // no_slots_error is thrown when we are unable to generate a return value
-  // due to no slots being connected to the signal. 
+  // due to no slots being connected to the signal.
   class no_slots_error: public std::runtime_error
   {
   public:
@@ -43,15 +44,24 @@ namespace boost {
     template<typename InputIterator>
     T operator()(InputIterator first, InputIterator last) const
     {
+      T * resolver = 0;
       if(first == last)
       {
-        T *resolver = 0;
         return last_value_detail::default_construct(resolver);
       }
-      T value = *first++;
+      optional<T> value;
       while (first != last)
-        value = *first++;
-      return value;
+      {
+        try
+        {
+          value = *first;
+        }
+        catch(const bad_weak_ptr &err)
+        {}
+        ++first;
+      }
+      if(value) return value.get();
+      return last_value_detail::default_construct(resolver);
     }
   };
 
@@ -67,7 +77,15 @@ namespace boost {
     operator()(InputIterator first, InputIterator last) const
     {
       while (first != last)
-        *first++;
+      {
+        try
+        {
+          *first;
+        }
+        catch(const bad_weak_ptr &err)
+        {}
+        ++first;
+      }
       return result_type();
     }
   };
