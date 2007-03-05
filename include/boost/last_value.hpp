@@ -13,10 +13,10 @@
 
 #include <cassert>
 #include <boost/optional.hpp>
-#include <boost/weak_ptr.hpp>
 #include <stdexcept>
 
 namespace boost {
+  class expired_slot;
   // no_slots_error is thrown when we are unable to generate a return value
   // due to no slots being connected to the signal.
   class no_slots_error: public std::runtime_error
@@ -56,7 +56,7 @@ namespace boost {
         {
           value = *first;
         }
-        catch(const bad_weak_ptr &err)
+        catch(const expired_slot &err)
         {}
         ++first;
       }
@@ -82,7 +82,7 @@ namespace boost {
         {
           *first;
         }
-        catch(const bad_weak_ptr &err)
+        catch(const expired_slot &err)
         {}
         ++first;
       }
