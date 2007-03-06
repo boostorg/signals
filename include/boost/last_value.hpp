@@ -19,11 +19,10 @@ namespace boost {
   class expired_slot;
   // no_slots_error is thrown when we are unable to generate a return value
   // due to no slots being connected to the signal.
-  class no_slots_error: public std::runtime_error
+  class no_slots_error: public std::exception
   {
   public:
-    no_slots_error(const std::string &description): std::runtime_error(description)
-    {}
+	  virtual const char* what() {return "boost::no_slots_error";}
   };
   namespace last_value_detail {
     template<typename T>
