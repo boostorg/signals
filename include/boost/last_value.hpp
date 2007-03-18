@@ -28,7 +28,7 @@ namespace boost {
     template<typename T>
     T default_construct(const T *resolver)
     {
-      throw no_slots_error("Signal invoked with no slots connected.");
+      throw no_slots_error();
     }
     template<typename T>
     optional<T> default_construct(const optional<T> *resolver)
@@ -55,7 +55,7 @@ namespace boost {
         {
           value = *first;
         }
-        catch(const expired_slot &err)
+        catch(const expired_slot &)
         {}
         ++first;
       }
@@ -81,7 +81,7 @@ namespace boost {
         {
           *first;
         }
-        catch(const expired_slot &err)
+        catch(const expired_slot &)
         {}
         ++first;
       }
