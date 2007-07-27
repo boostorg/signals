@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
   "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
-<header name="boost/signals/slot.hpp" last-revision="$Date$">
+<header name="boost/signals/slot.hpp" last-revision="$Date: 2007-02-06 20:22:17 -0500 (Tue, 06 Feb 2007) $">
   <namespace name="boost">
     <class name="slot">
       <template>

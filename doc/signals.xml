@@ -3,7 +3,7 @@
   "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
 <library name="Signals" dirname="signals"
          xmlns:xi="http://www.w3.org/2001/XInclude" id="signals"
-         last-revision="$Date$">
+         last-revision="$Date: 2007-02-20 15:06:46 -0500 (Tue, 20 Feb 2007) $">
 <libraryinfo>
   <author>
     <firstname>Douglas</firstname>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
   "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
-<section last-revision="$Date$">
+<section last-revision="$Date: 2007-02-06 20:22:17 -0500 (Tue, 06 Feb 2007) $">
   <title>Design Rationale</title>
 
   <using-namespace name="boost"/>
